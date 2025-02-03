@@ -16,7 +16,7 @@ public class UIManager : MonoBehaviour
         webSocketManager = FindObjectOfType<WebSocketManager>();
         if (webSocketManager == null)
         {
-            Debug.LogError("WebSocketManager non trouvé !");
+            Debug.LogError("WebSocketManager non trouve dans la scene.");
         }
     }
 
@@ -34,15 +34,25 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        var createMessage = new CreateRoomMessage { type = "createRoom", roomName = roomName };
+        // Correction : Utiliser une classe serialisable
+        CreateRoomMessage createMessage = new CreateRoomMessage { type = "createRoom", roomName = roomName };
         string jsonMessage = JsonUtility.ToJson(createMessage);
 
-        Debug.Log("JSON envoyé au serveur : " + jsonMessage);
+        Debug.Log("JSON envoye au serveur : " + jsonMessage);
         webSocketManager.SendMessageToServer(jsonMessage);
     }
 
     public void UpdateRoomList(string[] roomNames)
     {
+        Debug.Log("UpdateRoomList appelee.");
+        if (roomNames == null || roomNames.Length == 0)
+        {
+            Debug.LogWarning("Aucun salon recu, liste vide.");
+            return;
+        }
+
+        Debug.Log("Salons recus pour mise a jour : " + string.Join(", ", roomNames));
+
         foreach (Transform child in panelRoomList)
         {
             Destroy(child.gameObject);
@@ -50,21 +60,58 @@ public class UIManager : MonoBehaviour
 
         foreach (string roomName in roomNames)
         {
-            GameObject newButton = Instantiate(roomButtonPrefab, panelRoomList);
-            newButton.GetComponentInChildren<TMP_Text>().text = roomName;
-            newButton.GetComponent<Button>().onClick.AddListener(() => JoinRoom(roomName));
+            Debug.Log("Ajout d un bouton pour le salon : " + roomName);
+            CreateRoomButton(roomName);
         }
     }
 
+
+
+    public void CreateRoomButton(string roomName)
+    {
+        GameObject newButton = Instantiate(roomButtonPrefab, panelRoomList);
+        TMP_Text buttonText = newButton.GetComponentInChildren<TMP_Text>();
+
+        if (buttonText != null)
+        {
+            buttonText.text = roomName;
+            Debug.Log("Bouton cree pour le salon : " + roomName);
+        }
+        else
+        {
+            Debug.LogError("Erreur : TMP_Text introuvable dans le prefab du bouton.");
+        }
+
+        Button button = newButton.GetComponent<Button>();
+        if (button != null)
+        {
+            button.onClick.AddListener(() => JoinRoom(roomName));
+        }
+        else
+        {
+            Debug.LogError("Erreur : Composant Button introuvable dans le prefab du bouton.");
+        }
+    }
+
+
+
     public void JoinRoom(string roomName)
     {
-        string joinRoomMessage = JsonUtility.ToJson(new { type = "joinRoom", roomName = roomName });
-        Debug.Log("Demande de rejoindre le salon : " + joinRoomMessage);
-        webSocketManager.SendMessageToServer(joinRoomMessage);
+        JoinRoomMessage joinRoomMessage = new JoinRoomMessage { type = "joinRoom", roomName = roomName };
+        string jsonMessage = JsonUtility.ToJson(joinRoomMessage);
+        Debug.Log("Demande de rejoindre le salon : " + jsonMessage);
+        webSocketManager.SendMessageToServer(jsonMessage);
     }
 
     [System.Serializable]
     public class CreateRoomMessage
+    {
+        public string type;
+        public string roomName;
+    }
+
+    [System.Serializable]
+    public class JoinRoomMessage
     {
         public string type;
         public string roomName;
