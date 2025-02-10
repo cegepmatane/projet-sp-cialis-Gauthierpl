@@ -14,11 +14,23 @@ public class UIManager : MonoBehaviour
     private void Awake()
     {
         webSocketManager = FindObjectOfType<WebSocketManager>();
+
         if (webSocketManager == null)
         {
-            Debug.LogError("WebSocketManager non trouve dans la scene.");
+            Debug.LogError("WebSocketManager non trouvé dans la scène.");
+        }
+
+        if (panelRoomList == null)
+        {
+            Debug.LogError("panelRoomList non assigné dans l'Inspector !");
+        }
+
+        if (roomButtonPrefab == null)
+        {
+            Debug.LogError("roomButtonPrefab non assigné dans l'Inspector !");
         }
     }
+
 
     void Start()
     {
