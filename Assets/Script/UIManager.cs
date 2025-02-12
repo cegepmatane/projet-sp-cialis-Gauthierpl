@@ -11,6 +11,11 @@ public class UIManager : MonoBehaviour
     public TMP_InputField joinRoomInput;
     public GameObject roomTemplateText; // Référence au modèle de texte
     public Transform roomsListContent; // Conteneur des salons
+    private void Start()
+    {
+        List<string> testRooms = new List<string> { "SalonA", "SalonB", "SalonC" };
+        UpdateRoomsList(testRooms);
+    }
 
     public void OnCreateRoomClick()
     {
