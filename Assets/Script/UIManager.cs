@@ -1,88 +1,40 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
 using TMPro;
-
 
 public class UIManager : MonoBehaviour
 {
     public NetworkManager networkManager;
-    public TMP_InputField createRoomInput;
-    public TMP_InputField joinRoomInput;
-    public GameObject roomTemplateText; // Référence au modèle de texte
-    public Transform roomsListContent; // Conteneur des salons
+    public Button playButton;
+    public TMP_InputField pseudoInput; // Champ pour saisir le pseudo
+
     private void Start()
     {
-        List<string> testRooms = new List<string> { "SalonA", "SalonB", "SalonC" };
-        UpdateRoomsList(testRooms);
-    }
-
-    public void OnCreateRoomClick()
-    {
-        string roomName = createRoomInput.text;
-        if (!string.IsNullOrEmpty(roomName))
+        if (playButton != null)
         {
-            networkManager.CreateRoom(roomName);
+            playButton.onClick.AddListener(OnPlayButtonClick);
         }
         else
         {
-            Debug.LogWarning("Veuillez entrer un nom de salon.");
+            Debug.LogError("PlayButton non assigné dans l'inspecteur !");
         }
     }
 
-    public void OnJoinRoomClick()
+    public void OnPlayButtonClick()
     {
-        string roomName = joinRoomInput.text;
-        if (!string.IsNullOrEmpty(roomName))
+        // Vérifier que le pseudo n'est pas vide
+        string pseudo = pseudoInput.text;
+        if (string.IsNullOrEmpty(pseudo))
         {
-            networkManager.JoinRoom(roomName);
-        }
-        else
-        {
-            Debug.LogWarning("Veuillez entrer un nom de salon.");
-        }
-    }
-
-    public void OnGetRoomsClick()
-    {
-        Debug.Log("Demande de la liste des salons...");
-        networkManager.GetRooms();
-    }
-
-    public void UpdateRoomsList(List<string> rooms)
-    {
-        Debug.Log($"[UI] Mise à jour de la liste des salons avec {rooms.Count} éléments...");
-
-        if (roomsListContent == null)
-        {
-            Debug.LogError("[UI] Erreur : `RoomsListContent` est NULL !");
+            Debug.LogWarning("Veuillez saisir un pseudo.");
             return;
         }
 
-        // Supprimer les anciens salons affichés
-        foreach (Transform child in roomsListContent)
-        {
-            Destroy(child.gameObject);
-        }
+        // Stocker le pseudo dans PlayerData
+        PlayerData.pseudo = pseudo;
+        Debug.Log("Pseudo enregistré : " + PlayerData.pseudo);
 
-        if (roomTemplateText == null)
-        {
-            Debug.LogError("[UI] Erreur : `RoomTemplateText` est NULL !");
-            return;
-        }
-
-        foreach (string room in rooms)
-        {
-            Debug.Log($"[UI] Création d'un élément UI pour le salon : {room}");
-
-            GameObject newText = Instantiate(roomTemplateText, roomsListContent);
-            newText.GetComponent<TextMeshProUGUI>().text = room; // Assigne le nom du salon
-
-            Debug.Log($"[UI] Salon ajouté à la liste : {room}");
-        }
+        // Lancer la connexion et la redirection
+        networkManager.JoinGame();
     }
-
-
-
-
 }

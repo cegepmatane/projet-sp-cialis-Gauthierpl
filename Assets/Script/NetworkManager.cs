@@ -1,7 +1,7 @@
 using UnityEngine;
+using UnityEngine.SceneManagement; // N'oubliez pas cet import pour SceneManager
 using SocketIOClient;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 public class NetworkManager : MonoBehaviour
@@ -19,101 +19,31 @@ public class NetworkManager : MonoBehaviour
 
         client.OnConnected += (sender, e) =>
         {
-            Debug.Log(" Connecté au serveur Socket.IO !");
+            Debug.Log("Connecté au serveur Socket.IO !");
         };
 
-        // Vérifie bien que ces événements sont bien enregistrés lors de la connexion
-        client.On("roomCreated", response =>
+        client.On("gameJoined", response =>
         {
-            Debug.Log(" [Unity] Réception de l'événement 'roomCreated'");
-
+            Debug.Log("Réception de l'événement 'gameJoined'");
             string roomName = response.GetValue<string>();
-            Debug.Log($" Salon créé avec succès: {roomName}");
-        });
+            Debug.Log($"Salon global rejoint: {roomName}");
 
-        client.On("roomJoined", response =>
-        {
-            Debug.Log(" [Unity] Réception de l'événement 'roomJoined'");
-
-            string roomName = response.GetValue<string>();
-            Debug.Log($" Salon rejoint avec succès: {roomName}");
-        });
-
-        client.On("roomsList", response =>
-        {
-            Debug.Log("[Unity] Réception de l'événement 'roomsList'");
-
-            // Vérifier la structure exacte de la réponse
-            Debug.Log($"[Unity] Contenu brut de 'roomsList' : {response}");
-
-            // Extraire correctement la liste depuis la structure JSON reçue
-            var jsonObject = response.GetValue<Dictionary<string, List<string>>>();
-            if (jsonObject.ContainsKey("rooms"))
-            {
-                List<string> rooms = jsonObject["rooms"];
-                Debug.Log($"[Unity] Liste des salons reçue (corrigée) : {string.Join(", ", rooms)}");
-
-                // Vérifier la présence du UIManager
-                UIManager uiManager = FindObjectOfType<UIManager>();
-                if (uiManager == null)
-                {
-                    Debug.LogError("[Unity] UIManager non trouvé ! Impossible de mettre à jour la liste.");
-                    return;
-                }
-
-                Debug.Log("[Unity] Mise à jour de l'interface avec la liste des salons...");
-                uiManager.UpdateRoomsList(rooms);
-            }
-            else
-            {
-                Debug.LogError("[Unity] Erreur : la réponse ne contient pas de clé 'rooms' !");
-            }
+            // Dispatch sur le thread principal
+            UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                Debug.Log("Chargement de la scène GameScene...");
+                SceneManager.LoadScene("GameScene");
+            });
         });
 
 
-
-
-        client.On("roomError", response =>
-        {
-            Debug.Log("[Unity] Réception de l'événement 'roomError'");
-
-            string errorMsg = response.GetValue<string>();
-            Debug.LogWarning($"Erreur lors de la gestion des salons: {errorMsg}");
-        });
 
         await client.ConnectAsync();
     }
 
-
-    public async void CreateRoom(string roomName)
+    public async void JoinGame()
     {
-        Debug.Log("Demande de création du salon: " + roomName);
-
-        var data = new Dictionary<string, string>
-    {
-        { "roomName", roomName }
-    };
-
-        await client.EmitAsync("createRoom", data);
-    }
-
-    public async void JoinRoom(string roomName)
-    {
-        Debug.Log("Demande de rejoindre le salon: " + roomName);
-
-        var data = new Dictionary<string, string>
-    {
-        { "roomName", roomName }
-    };
-
-        await client.EmitAsync("joinRoom", data);
-    }
-
-    public async void GetRooms()
-    {
-        Debug.Log("Demande de la liste des salons");
-
-        await client.EmitAsync("getRooms");
+        Debug.Log("Demande de rejoindre le jeu.");
+        await client.EmitAsync("joinGame");
     }
 
     private async void OnDestroy()
