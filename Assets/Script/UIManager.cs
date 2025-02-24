@@ -22,7 +22,6 @@ public class UIManager : MonoBehaviour
 
     public void OnPlayButtonClick()
     {
-        // Vérifier que le pseudo n'est pas vide
         string pseudo = pseudoInput.text;
         if (string.IsNullOrEmpty(pseudo))
         {
@@ -30,11 +29,11 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        // Stocker le pseudo dans PlayerData
+        // Stocker le pseudo si besoin (ex. via PlayerData)
         PlayerData.pseudo = pseudo;
         Debug.Log("Pseudo enregistré : " + PlayerData.pseudo);
 
-        // Lancer la connexion et la redirection
-        networkManager.JoinGame();
+        // Appeler JoinGame en envoyant le pseudo
+        networkManager.JoinGame(pseudo);
     }
 }
