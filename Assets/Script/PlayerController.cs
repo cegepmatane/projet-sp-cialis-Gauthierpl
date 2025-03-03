@@ -11,17 +11,19 @@ public class PlayerController : MonoBehaviour
     // Optionnel : référence à un TextMeshPro pour afficher le pseudo au-dessus du joueur
     public TextMeshProUGUI pseudoLabel;
 
-    void Update()
+    // Retire le mouvement depuis Update() et place-le dans FixedUpdate()
+    void FixedUpdate()
     {
+        // Si c'est le joueur local, on gère son déplacement et on envoie sa position au serveur
         if (isLocalPlayer)
         {
-            float move = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
-            if (move != 0)
-            {
-                transform.Translate(move, 0, 0);
-                // Envoyer la nouvelle position au serveur
-                NetworkManager.Instance.SendPlayerMove(transform.position.x);
-            }
+            // Récupère l'input horizontal
+            float move = Input.GetAxis("Horizontal") * speed * Time.fixedDeltaTime;
+            // Déplace le joueur localement
+            transform.Translate(move, 0, 0);
+
+            // Envoie la nouvelle position à chaque FixedUpdate (50 fois/s par défaut)
+            NetworkManager.Instance.SendPlayerMove(transform.position.x);
         }
     }
 
