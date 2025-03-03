@@ -55,16 +55,19 @@ io.on('connection', (socket) => {
   // Réception de la nouvelle position d'un joueur
   socket.on('playerMove', (data) => {
     console.log(`[playerMove] from ${socket.id}:`, data);
-    // Optionnel : parse localement pour vérifier
+  
     const parsedX = parseFloat(data.x);
-    if (isNaN(parsedX)) {
-      console.warn(`!!! Mauvaise donnée x: ${data.x} (type: ${typeof data.x})`);
-      return; // on ne broadcast pas si c'est invalide
+    const parsedY = parseFloat(data.y);
+  
+    if (isNaN(parsedX) || isNaN(parsedY)) {
+      console.warn(`!!! Mauvaise donnée x: ${data.x} ou y: ${data.y}`);
+      return; // Ne pas broadcast si les valeurs sont invalides
     }
   
-    console.log(`[playerMove] x = ${parsedX} -> broadcast updatePlayer`);
-    socket.broadcast.to(GLOBAL_ROOM).emit('updatePlayer', { id: socket.id, x: parsedX });
+    console.log(`[playerMove] x = ${parsedX}, y = ${parsedY} -> broadcast updatePlayer`);
+    socket.broadcast.to(GLOBAL_ROOM).emit('updatePlayer', { id: socket.id, x: parsedX, y: parsedY });
   });
+  
   
 
   // Quand on reçoit la demande getPlayersList
