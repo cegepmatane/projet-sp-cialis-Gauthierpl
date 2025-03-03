@@ -8,9 +8,12 @@ public class PlayerController : MonoBehaviour
     public float speed = 5f;
     private bool isLocalPlayer = false;
 
+    public float moveSpeed = 5f; // Vitesse de déplacement
     public float jumpForce = 5f; // Force du saut
     private Rigidbody2D rb;
     private bool jumpRequest = false;
+    private float moveInput = 0f; // Stocke l'entrée horizontale
+
 
 
     // Optionnel : r�f�rence � un TextMeshPro pour afficher le pseudo au-dessus du joueur
@@ -23,11 +26,17 @@ public class PlayerController : MonoBehaviour
     }
     void Update()
     {
-        if (isLocalPlayer && Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Z))
+        if (isLocalPlayer)
         {
-            jumpRequest = true;
+            moveInput = Input.GetAxis("Horizontal"); // Stocke l'input horizontal
+
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                jumpRequest = true; // Demande de saut
+            }
         }
     }
+
 
 
     // Retire le mouvement depuis Update() et place-le dans FixedUpdate()
@@ -35,8 +44,8 @@ public class PlayerController : MonoBehaviour
     {
         if (isLocalPlayer)
         {
-            float moveX = Input.GetAxis("Horizontal") * speed * Time.fixedDeltaTime;
-            transform.Translate(moveX, 0, 0);
+            // Déplacement horizontal en modifiant la vélocité
+            rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
             // Appliquer le saut si une demande est en attente
             if (jumpRequest)
@@ -49,6 +58,7 @@ public class PlayerController : MonoBehaviour
             NetworkManager.Instance.SendPlayerMove(transform.position.x, transform.position.y);
         }
     }
+
 
 
 
