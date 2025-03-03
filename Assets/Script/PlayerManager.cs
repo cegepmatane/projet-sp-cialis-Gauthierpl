@@ -26,6 +26,7 @@ public class PlayerManager : MonoBehaviour
         NetworkManager.OnPlayerRemove -= HandlePlayerRemove;
     }
 
+
     void HandlePlayerSpawn(string id, string pseudo)
     {
         Debug.Log($"[PlayerManager] HandlePlayerSpawn appelé pour id={id}, pseudo={pseudo}");
@@ -57,19 +58,20 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
-    void HandlePlayerUpdate(string id, float x)
+    void HandlePlayerUpdate(string id, float x, float y)
     {
-        // On ignore la mise à jour du joueur local (qui gère lui-même son déplacement)
-        if (id == PlayerData.id) return;
+        if (id == PlayerData.id) return; // Ne pas mettre à jour le joueur local
 
         if (players.ContainsKey(id))
         {
             GameObject playerObj = players[id];
             Vector3 pos = playerObj.transform.position;
             pos.x = x;
+            pos.y = y;
             playerObj.transform.position = pos;
         }
     }
+
 
     void HandlePlayerRemove(string id)
     {
