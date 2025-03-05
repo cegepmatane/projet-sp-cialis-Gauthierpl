@@ -31,7 +31,7 @@ public class PlayerManager : MonoBehaviour
     {
         Debug.Log($"[PlayerManager] HandlePlayerSpawn appelé pour id={id}, pseudo={pseudo}");
 
-        if (!players.ContainsKey(id))
+        if (!players.ContainsKey(id)) // Vérifier que le joueur n'existe pas encore
         {
             Debug.Log("[PlayerManager] Instantiation du prefab...");
             GameObject newPlayer = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
@@ -42,8 +42,7 @@ public class PlayerManager : MonoBehaviour
                 pc.playerId = id;
                 pc.SetPseudo(pseudo);
 
-                // Si c'est le joueur local, on le marque
-                if (id == PlayerData.id)
+                if (id == PlayerData.id) // Si c'est le joueur local, on le marque
                 {
                     pc.SetAsLocalPlayer();
                     Debug.Log($"[PlayerManager] Joueur local détecté (id={id}, pseudo={pseudo}).");
@@ -54,9 +53,10 @@ public class PlayerManager : MonoBehaviour
         }
         else
         {
-            Debug.Log($"[PlayerManager] Le joueur {id} est déjà dans le dictionnaire, pas de nouveau spawn.");
+            Debug.LogWarning($"[PlayerManager] Le joueur {id} est déjà instancié, annulation du spawn !");
         }
     }
+
 
     void HandlePlayerUpdate(string id, float x, float y)
     {

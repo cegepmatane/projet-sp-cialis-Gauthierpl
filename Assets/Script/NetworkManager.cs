@@ -13,7 +13,7 @@ public class NetworkManager : MonoBehaviour
 
     public static event Action<List<string>> OnPlayersListUpdated; // Pour l'UI (liste de pseudos)
     public static event Action<string, string> OnPlayerSpawn;      // (id, pseudo)
-    public static event Action<string, float, float> OnPlayerUpdate; // (id, x position, y position)
+    public static event Action<string, float, float> OnPlayerUpdate; // (id, x, y)
     public static event Action<string> OnPlayerRemove;             // (id)
 
     public static List<string> lastPlayersList = new List<string>();
@@ -63,12 +63,16 @@ public class NetworkManager : MonoBehaviour
                 Debug.Log("Chargement asynchrone de la scène GameScene...");
                 AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("GameScene");
 
+                // Une fois la scène chargée
                 asyncLoad.completed += (op) =>
                 {
                     Debug.Log("Scène GameScene chargée !");
 
-                    // Attendre un court délai pour que tout soit bien en place
-                    Instance.Invoke(nameof(RequestPlayersList), 1.0f);
+                    // 1) On récupère la liste complète des joueurs existants (pour local spawn)
+                    Instance.Invoke(nameof(RequestPlayersList), 0.5f);
+
+                    // 2) Ensuite, on signale au serveur qu'on est prêt
+                    Instance.Invoke(nameof(SendPlayerReady), 1.0f);
                 };
             });
         });
@@ -87,11 +91,15 @@ public class NetworkManager : MonoBehaviour
                     {
                         string id = playerInfo["id"];
                         string pseudo = playerInfo["pseudo"];
-                        playersPseudoList.Add(pseudo);
 
-                        // Forcer un spawn local pour chaque joueur listé
-                        Debug.Log($"[playersList] Force spawn for id={id}, pseudo={pseudo}");
-                        OnPlayerSpawn?.Invoke(id, pseudo);
+                        // Ne pas forcer un spawn local du joueur s'il est lui-même en train de se connecter
+                        if (id != PlayerData.id)
+                        {
+                            Debug.Log($"[playersList] Force spawn pour id={id}, pseudo={pseudo}");
+                            OnPlayerSpawn?.Invoke(id, pseudo);
+                        }
+
+                        playersPseudoList.Add(pseudo);
                     }
                     lastPlayersList = playersPseudoList;
                     Debug.Log("Liste des joueurs connectés : " + string.Join(", ", playersPseudoList));
@@ -104,7 +112,8 @@ public class NetworkManager : MonoBehaviour
             });
         });
 
-        // Réception de l'event "spawnPlayer" (serveur)
+
+        // Réception de l'event "spawnPlayer" (envoyé par playerReady côté serveur)
         client.On("spawnPlayer", response =>
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
@@ -118,7 +127,7 @@ public class NetworkManager : MonoBehaviour
             });
         });
 
-        // Réception de l'event "updatePlayer" (mouvement d'un joueur)
+        // Réception de l'event "updatePlayer" (mouvement)
         client.On("updatePlayer", response =>
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
@@ -142,9 +151,7 @@ public class NetworkManager : MonoBehaviour
             });
         });
 
-
-
-        // Réception de l'event "removePlayer" (joueur déconnecté)
+        // Réception de l'event "removePlayer"
         client.On("removePlayer", response =>
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
@@ -156,17 +163,14 @@ public class NetworkManager : MonoBehaviour
             });
         });
 
-        // Connexion Socket.IO
+        // Connexion
         await client.ConnectAsync();
     }
 
     public async void JoinGame(string pseudo)
     {
         Debug.Log("Demande de rejoindre le jeu avec pseudo: " + pseudo);
-        var data = new Dictionary<string, string>
-        {
-            { "pseudo", pseudo }
-        };
+        var data = new Dictionary<string, string> { { "pseudo", pseudo } };
         await client.EmitAsync("joinGame", data);
     }
 
@@ -176,8 +180,21 @@ public class NetworkManager : MonoBehaviour
         await client.EmitAsync("playerMove", data);
     }
 
+    // À appeler juste après le chargement de la scène pour recevoir la liste des joueurs
+    private async void RequestPlayersList()
+    {
+        Debug.Log("Demande de mise à jour des joueurs (Emit getPlayersList)...");
+        await client.EmitAsync("getPlayersList");
+    }
 
-    // Déconnexion propre quand on quitte le jeu
+    // Signale au serveur qu’on est prêt à être spawné côté autres joueurs
+    private async void SendPlayerReady()
+    {
+        Debug.Log("Envoi de 'playerReady' au serveur...");
+        await client.EmitAsync("playerReady");
+    }
+
+    // Déconnexion propre
     private async void OnDestroy()
     {
         if (client != null)
@@ -185,12 +202,4 @@ public class NetworkManager : MonoBehaviour
             await client.DisconnectAsync();
         }
     }
-
-    private async void RequestPlayersList()
-    {
-        Debug.Log("Demande manuelle de mise à jour des joueurs après chargement... (Emit getPlayersList)");
-        await client.EmitAsync("getPlayersList");
-        Debug.Log("Après EmitAsync getPlayersList, requête envoyée.");
-    }
-
 }
