@@ -18,6 +18,13 @@ public class NetworkManager : MonoBehaviour
 
     public static List<string> lastPlayersList = new List<string>();
 
+
+    public static event Action<string, string, string> OnChatMessage;
+    // param1: l'id du joueur qui envoie
+    // param2: le pseudo du joueur
+    // param3: le texte du message
+
+
     private void Awake()
     {
         if (Instance == null)
@@ -163,6 +170,25 @@ public class NetworkManager : MonoBehaviour
             });
         });
 
+
+
+        client.On("chatMessage", response =>
+        {
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            {
+                var data = response.GetValue<Dictionary<string, object>>();
+                string id = data["id"].ToString();
+                string pseudo = data["pseudo"].ToString();
+                string message = data["message"].ToString();
+                // time = data["time"] si tu veux l’utiliser
+
+                OnChatMessage?.Invoke(id, pseudo, message);
+            });
+        });
+
+
+
+
         // Connexion
         await client.ConnectAsync();
     }
@@ -202,4 +228,14 @@ public class NetworkManager : MonoBehaviour
             await client.DisconnectAsync();
         }
     }
+
+    public async void SendChatMessage(string message)
+    {
+        var data = new Dictionary<string, string>
+    {
+        { "message", message }
+    };
+        await client.EmitAsync("sendChatMessage", data);
+    }
+
 }
