@@ -67,7 +67,11 @@ module.exports = function (io) {
         id,
         pseudo: pseu,
       }));
-      socket.emit("playersList", { players: playersList });
+      // Envoyer la liste de joueurs existants AU NOUVEAU joueur
+      // socket.emit("playersList", { players: playersList });
+
+      // Envoyer la liste à tous les joueurs déjà présents
+      io.in(store.GLOBAL_ROOM).emit("playersList", { players: playersList });
     });
 
     // Déconnexion

@@ -35,19 +35,30 @@ public class ChatManager : MonoBehaviour
 
     void Update()
     {
-        // T pour ouvrir/fermer le chat
         if (Input.GetKeyDown(KeyCode.T))
         {
-            ToggleChat();
+            bool inputFieldFocused = (inputField != null && inputField.isFocused);
+
+            // Cas 1 : le chat est fermé => T l’ouvre
+            if (!isChatOpen)
+            {
+                ToggleChat();
+            }
+            // Cas 2 : le chat est ouvert mais le champ n'a pas le focus => T le ferme
+            else if (isChatOpen && !inputFieldFocused)
+            {
+                ToggleChat();
+            }
+            // Cas 3 : le chat est ouvert ET le champ est focus => T s’écrit dans l’inputField (on ne Toggle pas)
         }
 
         // Si le chat est ouvert et qu’on appuie sur Entrée, on envoie le message
-        // (On peut aussi le gérer via un bouton \"Envoyer\" ou un OnEndEdit)
         if (isChatOpen && Input.GetKeyDown(KeyCode.Return))
         {
             SendMessageToServer();
         }
     }
+
 
     private void ToggleChat()
     {
@@ -75,6 +86,8 @@ public class ChatManager : MonoBehaviour
         // Faire défiler en bas
         Canvas.ForceUpdateCanvases();
         scrollRect.verticalNormalizedPosition = 0f;
+
+
     }
 
     // Appelé quand on veut envoyer un message
