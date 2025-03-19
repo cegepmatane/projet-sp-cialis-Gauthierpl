@@ -18,11 +18,26 @@ public class PlayerController : MonoBehaviour
 
     // Optionnel : r�f�rence � un TextMeshPro pour afficher le pseudo au-dessus du joueur
     public TextMeshProUGUI pseudoLabel;
+    public SpriteRenderer spriteRenderer; // <- Ajoute cette ligne
 
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        // Appliquer une couleur aléatoire au spawn
+        ApplyRandomColorForPlayerPrefab();
+    }
+
+    void ApplyRandomColorForPlayerPrefab()
+    {
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = new Color(
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f)
+            );
+        }
     }
     void Update()
     {
@@ -39,7 +54,6 @@ public class PlayerController : MonoBehaviour
 
 
 
-    // Retire le mouvement depuis Update() et place-le dans FixedUpdate()
     void FixedUpdate()
     {
         if (isLocalPlayer)

@@ -172,6 +172,7 @@ MonoBehaviour:
   moveSpeed: 5
   jumpForce: 5
   pseudoLabel: {fileID: 8904105214005172717}
+  spriteRenderer: {fileID: 4152382793234836780}
 --- !u!1 &3934124925981224545
 GameObject:
   m_ObjectHideFlags: 0
