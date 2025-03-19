@@ -82,6 +82,15 @@ module.exports = function (io) {
 
         // Notifier les clients pour retirer ce joueur
         io.in(store.GLOBAL_ROOM).emit("removePlayer", { id: socket.id });
+
+
+        // Émettre la liste actualisée des joueurs
+        const playersList = Object.entries(store.globalPlayers).map(([id, pseu]) => ({
+          id,
+          pseudo: pseu,
+        }));
+
+        io.in(store.GLOBAL_ROOM).emit("playersList", { players: playersList });
       }
     });
   });

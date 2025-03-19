@@ -14,7 +14,7 @@ public class DebugConsole : MonoBehaviour
     public Button copyButton;
 
     private static Queue<string> logQueue = new Queue<string>();
-    private const int maxLogCount = 50; // Nombre max de logs affichés
+    private const int maxLogCount = 200; // Nombre max de logs affichés
 
     private void Awake()
     {
