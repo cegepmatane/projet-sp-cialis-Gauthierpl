@@ -14,6 +14,7 @@ public class PlayerController : MonoBehaviour
     private bool jumpRequest = false;
     private float moveInput = 0f; // Stocke l'entrée horizontale
 
+    private Animator animator; // Référence à l'Animator
 
 
     // Optionnel : r�f�rence � un TextMeshPro pour afficher le pseudo au-dessus du joueur
@@ -24,6 +25,8 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>(); // Récupération de l'Animator
+
         // Appliquer une couleur aléatoire au spawn
         ApplyRandomColorForPlayerPrefab();
     }
@@ -48,6 +51,18 @@ public class PlayerController : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
                 jumpRequest = true; // Demande de saut
+            }
+
+            // Gestion des animations ()
+            if (moveInput != 0)
+            {
+                animator.SetBool("IsRunning", true);
+                animator.SetBool("IsIdle", false);
+            }
+            else
+            {
+                animator.SetBool("IsRunning", false);
+                animator.SetBool("IsIdle", true);
             }
         }
     }
