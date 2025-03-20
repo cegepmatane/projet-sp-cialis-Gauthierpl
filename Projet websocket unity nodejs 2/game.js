@@ -47,19 +47,26 @@ module.exports = function (io) {
     socket.on("playerMove", (data) => {
       const parsedX = parseFloat(data.x);
       const parsedY = parseFloat(data.y);
-
+      // Récupération des booléens envoyés par le client
+      const isRunning = data.isRunning;
+      const isIdle = data.isIdle;
+   
       if (isNaN(parsedX) || isNaN(parsedY)) {
         console.warn(`[game] Mauvaise donnée x: ${data.x}, y: ${data.y}`);
         return;
       }
-
-      // Broadcast la position aux autres
+    
+      
+      // Broadcast la position + animation aux autres
       socket.broadcast.to(store.GLOBAL_ROOM).emit("updatePlayer", {
         id: socket.id,
         x: parsedX,
         y: parsedY,
+        isRunning: isRunning,
+        isIdle: isIdle,
       });
     });
+    
 
     // getPlayersList (si besoin de récupérer la liste plus tard)
     socket.on("getPlayersList", () => {

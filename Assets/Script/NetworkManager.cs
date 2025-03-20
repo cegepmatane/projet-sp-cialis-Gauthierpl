@@ -13,7 +13,7 @@ public class NetworkManager : MonoBehaviour
 
     public static event Action<List<string>> OnPlayersListUpdated; // Pour l'UI (liste de pseudos)
     public static event Action<string, string> OnPlayerSpawn;      // (id, pseudo)
-    public static event Action<string, float, float> OnPlayerUpdate; // (id, x, y)
+    public static event Action<string, float, float, bool, bool> OnPlayerUpdate; // (id, x, y, la valeur de IsIdle, la valeur de IsRunning)
     public static event Action<string> OnPlayerRemove;             // (id)
 
     public static List<string> lastPlayersList = new List<string>();
@@ -144,12 +144,18 @@ public class NetworkManager : MonoBehaviour
                 string id = data["id"].ToString();
                 string xStr = data["x"].ToString();
                 string yStr = data["y"].ToString();
+                // Parse des booléens
+                bool isRunning = bool.Parse(data["isRunning"].ToString());
+        
+                bool isIdle = bool.Parse(data["isIdle"].ToString());
+        
 
-                float x, y;
+
+                        float x, y;
                 if (float.TryParse(xStr, NumberStyles.Float, CultureInfo.InvariantCulture, out x) &&
                     float.TryParse(yStr, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
                 {
-                    OnPlayerUpdate?.Invoke(id, x, y);
+                    OnPlayerUpdate?.Invoke(id, x, y, isRunning, isIdle);
                 }
                 else
                 {
@@ -200,10 +206,16 @@ public class NetworkManager : MonoBehaviour
         await client.EmitAsync("joinGame", data);
     }
 
-    public async void SendPlayerMove(float x, float y)
+    public async void SendPlayerMove(float x, float y, bool isRunning, bool isIdle)
     {
-        var data = new Dictionary<string, float> { { "x", x }, { "y", y } };
-        await client.EmitAsync("playerMove", data);
+        var data = new Dictionary<string, object>
+        {
+            { "x", x },
+            { "y", y },
+            { "isRunning", isRunning },
+            { "isIdle", isIdle }
+        };
+            await client.EmitAsync("playerMove", data);
     }
 
     // À appeler juste après le chargement de la scène pour recevoir la liste des joueurs

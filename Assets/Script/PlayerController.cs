@@ -5,32 +5,71 @@ public class PlayerController : MonoBehaviour
 {
     public string playerId;
     public string pseudo;
-    public float speed = 5f;
+    public float moveSpeed = 5f;
+    public float jumpForce = 5f;
+
     private bool isLocalPlayer = false;
-
-    public float moveSpeed = 5f; // Vitesse de déplacement
-    public float jumpForce = 5f; // Force du saut
     private Rigidbody2D rb;
+    private Animator animator;
+
     private bool jumpRequest = false;
-    private float moveInput = 0f; // Stocke l'entrée horizontale
+    private float moveInput = 0f;
 
-    private Animator animator; // Référence à l'Animator
-
-
-    // Optionnel : r�f�rence � un TextMeshPro pour afficher le pseudo au-dessus du joueur
     public TextMeshProUGUI pseudoLabel;
-    public SpriteRenderer spriteRenderer; // <- Ajoute cette ligne
-
+    public SpriteRenderer spriteRenderer;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>(); // Récupération de l'Animator
-
-        // Appliquer une couleur aléatoire au spawn
+        animator = GetComponent<Animator>();
         ApplyRandomColorForPlayerPrefab();
     }
 
+    void Update()
+    {
+        if (!isLocalPlayer) return;
+
+        // Récupération des inputs (horizontal + bouton de saut)
+        moveInput = Input.GetAxis("Horizontal");
+
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            jumpRequest = true;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (!isLocalPlayer) return;
+
+        // 1) Appliquer le mouvement
+        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+
+        // 2) Gérer le saut
+        if (jumpRequest)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            jumpRequest = false;
+        }
+
+        // 3) Calculer l'état d'animation
+        bool isRunning = Mathf.Abs(moveInput) > 0.01f;
+        bool isIdle = !isRunning;
+
+        // 4) Mettre à jour l'anim côté local
+        animator.SetBool("IsRunning", isRunning);
+        animator.SetBool("IsIdle", isIdle);
+
+        // 5) Envoyer la position & l'état d'anim au serveur
+        NetworkManager.Instance.SendPlayerMove(
+            transform.position.x,
+            transform.position.y,
+            isRunning,
+            isIdle
+        );
+    }
+
+    // Pour mettre à jour la couleur du joueur (exemple)
     void ApplyRandomColorForPlayerPrefab()
     {
         if (spriteRenderer != null)
@@ -42,55 +81,15 @@ public class PlayerController : MonoBehaviour
             );
         }
     }
-    void Update()
+
+    // Appelé seulement sur les autres joueurs quand on reçoit l'événement réseau 'updatePlayer'
+    public void UpdateRemoteAnimation(bool isRunning, bool isIdle)
     {
-        if (isLocalPlayer)
-        {
-            moveInput = Input.GetAxis("Horizontal"); // Stocke l'input horizontal
-
-            if (Input.GetKeyDown(KeyCode.UpArrow))
-            {
-                jumpRequest = true; // Demande de saut
-            }
-
-            // Gestion des animations ()
-            if (moveInput != 0)
-            {
-                animator.SetBool("IsRunning", true);
-                animator.SetBool("IsIdle", false);
-            }
-            else
-            {
-                animator.SetBool("IsRunning", false);
-                animator.SetBool("IsIdle", true);
-            }
-        }
+        animator.SetBool("IsRunning", isRunning);
+        animator.SetBool("IsIdle", isIdle);
     }
 
-
-
-    void FixedUpdate()
-    {
-        if (isLocalPlayer)
-        {
-            // Déplacement horizontal en modifiant la vélocité
-            rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
-
-            // Appliquer le saut si une demande est en attente
-            if (jumpRequest)
-            {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                jumpRequest = false; // Réinitialisation de la demande de saut
-            }
-
-            // Envoi de la position x et y au serveur
-            NetworkManager.Instance.SendPlayerMove(transform.position.x, transform.position.y);
-        }
-    }
-
-
-
-
+    // Pour attribuer le pseudo
     public void SetPseudo(string pseudo)
     {
         this.pseudo = pseudo;
@@ -100,6 +99,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Détermine si c'est le joueur local
     public void SetAsLocalPlayer()
     {
         isLocalPlayer = true;
