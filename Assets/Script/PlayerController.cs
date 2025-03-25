@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -18,6 +19,9 @@ public class PlayerController : MonoBehaviour
     public TextMeshProUGUI pseudoLabel;
     public SpriteRenderer spriteRenderer;
 
+    //Références vers la bulle
+    public GameObject chatBubble;          // On assigne l'objet "ChatBubble" depuis l'Inspecteur
+    public TextMeshProUGUI chatBubbleText; // On assigne le TMP (le texte dans la bulle)
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -103,5 +107,27 @@ public class PlayerController : MonoBehaviour
     public void SetAsLocalPlayer()
     {
         isLocalPlayer = true;
+    }
+
+
+    // 2) Méthode pour afficher le message pendant un certain temps
+    public void DisplayChatMessage(string message, float duration = 10f)
+    {
+        if (chatBubble == null || chatBubbleText == null) return;
+
+        // Affiche la bulle
+        chatBubble.SetActive(true);
+        chatBubbleText.text = message;
+
+        // Au cas où plusieurs messages rapides arrivent, on arrête les coroutines précédentes
+        StopAllCoroutines();
+        StartCoroutine(HideBubbleAfterSeconds(duration));
+    }
+
+    private IEnumerator HideBubbleAfterSeconds(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        // Cache la bulle
+        chatBubble.SetActive(false);
     }
 }

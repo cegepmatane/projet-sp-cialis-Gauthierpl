@@ -87,7 +87,11 @@ public class ChatManager : MonoBehaviour
         Canvas.ForceUpdateCanvases();
         scrollRect.verticalNormalizedPosition = 0f;
 
-
+        //Affichage au-dessus du joueur
+        if (PlayerManager.Instance != null)
+        {
+            PlayerManager.Instance.DisplayChatBubble(playerId, message);
+        }
     }
 
     // Appelé quand on veut envoyer un message

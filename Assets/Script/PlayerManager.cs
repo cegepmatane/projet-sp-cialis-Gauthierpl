@@ -7,9 +7,15 @@ public class PlayerManager : MonoBehaviour
 
     // Dictionnaire pour suivre les joueurs par leur id
     private Dictionary<string, GameObject> players = new Dictionary<string, GameObject>();
+
+    public static PlayerManager Instance; // (optionnel) si tu veux y accéder statiquement Assure-toi que PlayerManager.Instance = this; est bien mis dans Awake() ou Start(), pour qu’on puisse l’appeler depuis un autre script.
+
+
     void Awake()
     {
         Debug.Log("[PlayerManager] Awake() called");
+        Instance = this; // Pour qu'on puisse faire PlayerManager.Instance.DisplayChatBubble(...)
+
     }
 
     private void OnEnable()
@@ -91,6 +97,19 @@ public class PlayerManager : MonoBehaviour
         {
             Destroy(players[id]);
             players.Remove(id);
+        }
+    }
+
+
+    public void DisplayChatBubble(string playerId, string msg)
+    {
+        if (!players.ContainsKey(playerId)) return;
+        GameObject playerObj = players[playerId];
+
+        PlayerController pc = playerObj.GetComponent<PlayerController>();
+        if (pc != null)
+        {
+            pc.DisplayChatMessage(msg, 10f); // on choisit 10 secondes
         }
     }
 }
