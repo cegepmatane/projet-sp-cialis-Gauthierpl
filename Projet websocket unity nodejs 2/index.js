@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
 gameModule(io);
 chatModule(io);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Serveur lancé sur le port ${PORT}`);
 });

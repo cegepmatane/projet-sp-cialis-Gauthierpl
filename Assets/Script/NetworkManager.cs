@@ -47,7 +47,7 @@ public class NetworkManager : MonoBehaviour
 
     async Task ConnectToServer()
     {
-        client = new SocketIO("http://localhost:3000");
+        client = new SocketIO("http://192.46.222.42:3000");
 
         client.OnConnected += (sender, e) =>
         {
