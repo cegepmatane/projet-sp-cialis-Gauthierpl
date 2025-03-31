@@ -64,14 +64,22 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("IsRunning", isRunning);
         animator.SetBool("IsIdle", isIdle);
 
-        // 5) Envoyer la position & l'état d'anim au serveur
+        // 5) Mettre à jour l'orientation du sprite selon le déplacement
+        if (moveInput < 0)
+            spriteRenderer.flipX = true;
+        else if (moveInput > 0)
+            spriteRenderer.flipX = false;
+
+        // 6) Envoyer la position, l'état et l'orientation au serveur
         NetworkManager.Instance.SendPlayerMove(
             transform.position.x,
             transform.position.y,
             isRunning,
-            isIdle
+            isIdle,
+            moveInput < 0 // true si déplacement vers la gauche
         );
     }
+
 
     // Pour mettre à jour la couleur du joueur (exemple)
     void ApplyRandomColorForPlayerPrefab()

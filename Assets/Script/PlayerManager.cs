@@ -64,30 +64,30 @@ public class PlayerManager : MonoBehaviour
     }
 
 
-    void HandlePlayerUpdate(string id, float x, float y, bool isRunning, bool isIdle)
+    void HandlePlayerUpdate(string id, float x, float y, bool isRunning, bool isIdle, bool flip)
     {
-        if (id == PlayerData.id) return; // On ignore le joueur local
+        if (id == PlayerData.id) return; // on ignore le joueur local
 
         if (players.ContainsKey(id))
         {
             GameObject playerObj = players[id];
 
-            // 1) Mise à jour de la position
+            // Mise à jour de la position
             Vector3 pos = playerObj.transform.position;
             pos.x = x;
             pos.y = y;
             playerObj.transform.position = pos;
 
-            // 2) Mise à jour de l’animation
-            //    Soit on récupère directement le component Animator
-            //    Soit on appelle une méthode du PlayerController (plus propre).
+            // Mise à jour de l'animation et de l'orientation
             var playerController = playerObj.GetComponent<PlayerController>();
             if (playerController)
             {
                 playerController.UpdateRemoteAnimation(isRunning, isIdle);
+                playerController.spriteRenderer.flipX = flip;
             }
         }
     }
+
 
 
 

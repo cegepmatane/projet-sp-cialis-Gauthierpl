@@ -1,12 +1,29 @@
 // game.js
+const fs = require('fs');
+const path = require('path');
 const store = require("./store"); // On importe globalPlayers, GLOBAL_ROOM
 
+// chemin du fichier de log (au même endroit que game.js)
+const logFilePath = path.join(__dirname, 'connections-log.json');
+
+// Fonction pour logger une connexion ou déconnexion
+function logConnection(id, pseudo, action) {
+  const logs = fs.existsSync(logFilePath) ? JSON.parse(fs.readFileSync(logFilePath)) : [];
+
+  if (action === "join") {
+    logs.push({ id, pseudo, joinedAt: new Date().toISOString(), disconnectedAt: null });
+  } else if (action === "leave") {
+    const log = logs.find(log => log.id === id && log.disconnectedAt === null);
+    if (log) log.disconnectedAt = new Date().toISOString();
+  }
+
+  fs.writeFileSync(logFilePath, JSON.stringify(logs, null, 2));
+}
+
 module.exports = function (io) {
-  // Quand un nouveau client se connecte
   io.on("connection", (socket) => {
     console.log(`[game] 🟢 [${socket.id}] Nouveau client connecté`);
 
-    // joinGame
     socket.on("joinGame", (data) => {
       const pseudo = data.pseudo;
       if (!pseudo) {
@@ -14,28 +31,24 @@ module.exports = function (io) {
         return;
       }
 
-      // Enregistrer le pseudo et rejoindre la salle globale
       store.globalPlayers[socket.id] = pseudo;
       socket.join(store.GLOBAL_ROOM);
       console.log(`[game] 🔑 Joueur ${socket.id} (${pseudo}) a rejoint la salle: ${store.GLOBAL_ROOM}`);
 
-      // Envoyer la confirmation au client (son propre id + room)
       socket.emit("gameJoined", { room: store.GLOBAL_ROOM, id: socket.id });
 
-      // Envoyer la liste de joueurs existants AU NOUVEAU joueur
       const playersList = Object.entries(store.globalPlayers).map(([id, pseu]) => ({
         id,
         pseudo: pseu,
       }));
       socket.emit("playersList", { players: playersList });
 
-      // IMPORTANT : ne pas broadcast spawnPlayer ici pour éviter le double spawn
+      // Log connexion
+      logConnection(socket.id, pseudo, "join");
     });
 
-    // playerReady
     socket.on("playerReady", () => {
       if (store.globalPlayers[socket.id]) {
-        console.log(`[game] [playerReady] Joueur ${socket.id} est prêt. On spawn côté autres.`);
         io.in(store.GLOBAL_ROOM).emit("spawnPlayer", {
           id: socket.id,
           pseudo: store.globalPlayers[socket.id],
@@ -43,61 +56,52 @@ module.exports = function (io) {
       }
     });
 
-    // playerMove
     socket.on("playerMove", (data) => {
       const parsedX = parseFloat(data.x);
       const parsedY = parseFloat(data.y);
-      // Récupération des booléens envoyés par le client
-      const isRunning = data.isRunning;
-      const isIdle = data.isIdle;
-   
+      const { isRunning, isIdle, flip } = data; // récupération de "flip"
+    
       if (isNaN(parsedX) || isNaN(parsedY)) {
         console.warn(`[game] Mauvaise donnée x: ${data.x}, y: ${data.y}`);
         return;
       }
     
-      
-      // Broadcast la position + animation aux autres
       socket.broadcast.to(store.GLOBAL_ROOM).emit("updatePlayer", {
-        id: socket.id,
-        x: parsedX,
-        y: parsedY,
-        isRunning: isRunning,
-        isIdle: isIdle,
+        id: socket.id, 
+        x: parsedX, 
+        y: parsedY, 
+        isRunning, 
+        isIdle,
+        flip // on transmet cette information aux autres clients
       });
     });
     
 
-    // getPlayersList (si besoin de récupérer la liste plus tard)
     socket.on("getPlayersList", () => {
       const playersList = Object.entries(store.globalPlayers).map(([id, pseu]) => ({
         id,
         pseudo: pseu,
       }));
-      // Envoyer la liste de joueurs existants AU NOUVEAU joueur
-      // socket.emit("playersList", { players: playersList });
-
-      // Envoyer la liste à tous les joueurs déjà présents
       io.in(store.GLOBAL_ROOM).emit("playersList", { players: playersList });
     });
 
-    // Déconnexion
     socket.on("disconnect", () => {
       console.log(`[game] 🔴 [${socket.id}] Déconnexion...`);
-      if (store.globalPlayers[socket.id]) {
-        delete store.globalPlayers[socket.id];
+      const pseudo = store.globalPlayers[socket.id];
 
-        // Notifier les clients pour retirer ce joueur
+      if (pseudo) {
+        delete store.globalPlayers[socket.id];
         io.in(store.GLOBAL_ROOM).emit("removePlayer", { id: socket.id });
 
-
-        // Émettre la liste actualisée des joueurs
         const playersList = Object.entries(store.globalPlayers).map(([id, pseu]) => ({
           id,
           pseudo: pseu,
         }));
 
         io.in(store.GLOBAL_ROOM).emit("playersList", { players: playersList });
+
+        // Log déconnexion
+        logConnection(socket.id, pseudo, "leave");
       }
     });
   });
