@@ -109,7 +109,7 @@ Rigidbody2D:
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: ad5730ace16f67a4eb9a93640e736cf4, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -172,8 +172,17 @@ MonoBehaviour:
   pseudo: 
   moveSpeed: 5
   jumpForce: 5
+  groundCheckRadius: 0.2
+  groundCheckPoint: {fileID: 0}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  hasMouseGoal: 0
+  isDead: 0
+  deathYThreshold: -10
   pseudoLabel: {fileID: 5597280130669032028}
   spriteRenderer: {fileID: 8915132168684432438}
+  animator: {fileID: 0}
   chatBubble: {fileID: 1590847021641565864}
   chatBubbleText: {fileID: 1595410124478078501}
 --- !u!95 &268290290855473724

@@ -1,15 +1,15 @@
-// index.js
+// Fichier: Script serveur/index.js
 const express = require("express");
-const cors = require("cors");   // ✅ ajout pour CORS
+const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const gameModule = require("./game");
 const chatModule = require("./chat");
-const store = require("./store"); // <-- Pour accéder à globalPlayers
+const mapManager = require("./map_manager"); // <-- Ajout
+const store = require("./store");
 
 const app = express();
-app.use(cors());                // ✅ activation CORS globale
-
+app.use(cors());
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -21,26 +21,23 @@ app.get("/", (req, res) => {
   res.send("Serveur Socket.IO en ligne !");
 });
 
-// =============================
-// Nouvelle route pour la liste des joueurs à afficher sur le site de monitoring
-// =============================
+// Route pour la liste des joueurs
 app.get("/players", (req, res) => {
-  // Construire un tableau { id, pseudo } pour chaque joueur
   const playersArray = Object.entries(store.globalPlayers).map(([id, pseudo]) => ({
     id,
     pseudo,
   }));
-
-  // Renvoyer au format JSON
   res.json({
     players: playersArray,
   });
 });
 
-
-// On branche nos modules en leur passant 'io'
+// On branche nos modules Socket.IO
 gameModule(io);
 chatModule(io);
+
+// On démarre la rotation des cartes après l'initialisation de 'io'
+mapManager.startMapRotation(io); // <-- Ajout
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

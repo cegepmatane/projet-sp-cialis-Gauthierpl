@@ -184,5 +184,59 @@
     "pseudo": "nadine",
     "joinedAt": "2025-03-31T14:26:33.684Z",
     "disconnectedAt": "2025-03-31T14:37:17.379Z"
+  },
+  {
+    "id": "G5G_ffV3oJLkMQTkAAAC",
+    "pseudo": "sourisgogo",
+    "joinedAt": "2025-04-04T14:34:51.136Z",
+    "disconnectedAt": "2025-04-04T14:34:56.493Z"
+  },
+  {
+    "id": "1ytBWzdLE4LPayL4AAAF",
+    "pseudo": "gogo",
+    "joinedAt": "2025-04-04T14:38:37.674Z",
+    "disconnectedAt": "2025-04-04T14:39:07.328Z"
+  },
+  {
+    "id": "CSK6kFMsNirJ8qybAAAL",
+    "pseudo": "nadine",
+    "joinedAt": "2025-04-04T14:38:46.374Z",
+    "disconnectedAt": "2025-04-04T14:39:06.185Z"
+  },
+  {
+    "id": "iMG542d6E8d61TDsAAAI",
+    "pseudo": "tibo",
+    "joinedAt": "2025-04-04T14:38:54.366Z",
+    "disconnectedAt": "2025-04-04T14:39:05.281Z"
+  },
+  {
+    "id": "A5AxU5W9cFQJy-Q_AAAC",
+    "pseudo": "gogo",
+    "joinedAt": "2025-04-04T15:28:18.515Z",
+    "disconnectedAt": "2025-04-04T15:28:53.714Z"
+  },
+  {
+    "id": "BN1Mgy8hceainjWTAAAF",
+    "pseudo": "nadine",
+    "joinedAt": "2025-04-04T15:28:32.916Z",
+    "disconnectedAt": "2025-04-04T15:28:52.548Z"
+  },
+  {
+    "id": "H8dAbUcQyvUqJmqQAAAC",
+    "pseudo": "gogo",
+    "joinedAt": "2025-04-04T15:37:44.853Z",
+    "disconnectedAt": "2025-04-04T15:38:08.761Z"
+  },
+  {
+    "id": "xas35sxza0QeSHM-AAAC",
+    "pseudo": "gogo",
+    "joinedAt": "2025-04-04T15:42:55.817Z",
+    "disconnectedAt": "2025-04-04T15:47:40.897Z"
+  },
+  {
+    "id": "WTHog_WYJtS19eRZAAAF",
+    "pseudo": "nadine",
+    "joinedAt": "2025-04-04T15:46:10.119Z",
+    "disconnectedAt": "2025-04-04T15:47:39.873Z"
   }
 ]
