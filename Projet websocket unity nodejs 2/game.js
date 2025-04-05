@@ -144,7 +144,9 @@ module.exports = function (io) {
             // Validation simple des données reçues
              if (data == null || typeof data.x !== 'number' || typeof data.y !== 'number' ||
                  typeof data.isRunning !== 'boolean' || typeof data.isIdle !== 'boolean' ||
-                 typeof data.flip !== 'boolean') {
+                 typeof data.flip !== 'boolean' ||
+                 // <<< AJOUT: Validation pour la vélocité >>>
+                 typeof data.velocityX !== 'number' || typeof data.velocityY !== 'number') {
                  console.warn(`[game] ⚠️ Données playerMove invalides reçues de ${socket.id}`);
                  return; // Ignorer les données invalides
              }
@@ -156,7 +158,10 @@ module.exports = function (io) {
                   y: data.y,
                   isRunning: data.isRunning,
                   isIdle: data.isIdle,
-                  flip: data.flip
+                  flip: data.flip,
+                  // <<< AJOUT: Relayer la vélocité >>>
+                  velocityX: data.velocityX,
+                  velocityY: data.velocityY
               });
              // Éviter de logguer chaque mouvement pour ne pas spammer la console
              // console.log(`[Game] playerMove reçu de ${store.globalPlayers[socket.id]} (${socket.id})`);

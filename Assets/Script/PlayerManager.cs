@@ -10,6 +10,9 @@ public class PlayerManager : MonoBehaviour
     public GameObject playerPrefab; // Assigner le prefab du joueur dans l'inspecteur
     // Dictionnaire pour stocker les joueurs par ID réseau
     private Dictionary<string, GameObject> players = new Dictionary<string, GameObject>();
+    // Dictionnaire pour stocker les Rigidbodies associés pour accès rapide
+    private Dictionary<string, Rigidbody2D> playerRigidbodies = new Dictionary<string, Rigidbody2D>();
+
 
     // Couleurs pour différencier les joueurs (optionnel)
     private Color[] playerColors = { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan, Color.magenta, Color.white, Color.grey, Color.black };
@@ -93,7 +96,9 @@ public class PlayerManager : MonoBehaviour
 
 
             PlayerController pc = newPlayer.GetComponent<PlayerController>();
-            if (pc != null)
+            Rigidbody2D rb = newPlayer.GetComponent<Rigidbody2D>(); // Récupérer le Rigidbody
+
+            if (pc != null && rb != null) // Vérifier que les deux composants existent
             {
                 pc.SetNetworkId(id); // Donner l'ID réseau
                 pc.SetPseudo(pseudo);
@@ -111,22 +116,30 @@ public class PlayerManager : MonoBehaviour
                 // <<< AJOUT DEBUG >>>
                 else
                 {
+                    // Pour les joueurs distants, s'assurer que le Rigidbody n'est PAS Kinematic
+                    // et que la gravité est activée (si nécessaire, dépend de ton prefab)
+                    // rb.isKinematic = false; // Décommenter si nécessaire
+                    // rb.simulated = true;    // Décommenter si nécessaire
                     Debug.Log($"[PlayerManager] Joueur distant ({pseudo} / {id}) configuré (non-local).");
                 }
+                // <<< FIN AJOUT DEBUG >>>
+
+                players.Add(id, newPlayer); // Ajouter au dictionnaire des GameObjects
+                playerRigidbodies.Add(id, rb); // Ajouter au dictionnaire des Rigidbodies
+                newPlayer.name = $"Player_{(isLocal ? "LOCAL_" : "REMOTE_")}{pseudo}_{id.Substring(0, 4)}"; // Nommer l'objet pour le débogage
+                                                                                                            // <<< AJOUT DEBUG >>>
+                Debug.Log($"[PlayerManager] Joueur {pseudo} ({id}) ajouté aux dictionnaires. Total: {players.Count}. GameObject: {newPlayer.name}");
                 // <<< FIN AJOUT DEBUG >>>
             }
             else
             {
-                Debug.LogError("[PlayerManager] Le prefab joueur n'a pas de script PlayerController ! Destruction de l'objet instancié.");
+                if (pc == null) Debug.LogError($"[PlayerManager] Le prefab joueur ({newPlayer.name}) n'a pas de script PlayerController !");
+                if (rb == null) Debug.LogError($"[PlayerManager] Le prefab joueur ({newPlayer.name}) n'a pas de Rigidbody2D !");
                 Destroy(newPlayer); // Nettoyer l'objet invalide
-                return; // Sortir pour ne pas l'ajouter au dictionnaire
+                return; // Sortir pour ne pas l'ajouter aux dictionnaires
             }
 
-            players.Add(id, newPlayer); // Ajouter au dictionnaire
-            newPlayer.name = $"Player_{(isLocal ? "LOCAL_" : "REMOTE_")}{pseudo}_{id.Substring(0, 4)}"; // Nommer l'objet pour le débogage
-                                                                                                        // <<< AJOUT DEBUG >>>
-            Debug.Log($"[PlayerManager] Joueur {pseudo} ({id}) ajouté au dictionnaire. Total: {players.Count}. GameObject: {newPlayer.name}");
-            // <<< FIN AJOUT DEBUG >>>
+
         }
         else
         {
@@ -188,28 +201,35 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
-    // Gère la mise à jour de position/état d'un joueur distant
-    void HandlePlayerUpdate(string id, float x, float y, bool isRunning, bool isIdle, bool flip)
+    // Gère la mise à jour de position/état/vélocité d'un joueur distant
+    // <<< MODIFICATION: Ajout de velocityX, velocityY >>>
+    void HandlePlayerUpdate(string id, float x, float y, bool isRunning, bool isIdle, bool flip, float velocityX, float velocityY)
     {
         // On ignore les updates pour le joueur local car il est contrôlé par l'input direct
         if (id == PlayerData.id) return;
 
-        if (players.TryGetValue(id, out GameObject playerObj))
+        if (players.TryGetValue(id, out GameObject playerObj) && playerRigidbodies.TryGetValue(id, out Rigidbody2D rb))
         {
-            // Lissage de mouvement (interpolation)
+            // Lissage de mouvement (interpolation) pour la POSITION
             Vector3 targetPosition = new Vector3(x, y, playerObj.transform.position.z); // Garder le Z actuel
             // Ajuster le facteur de lissage (ex: 10f à 20f) selon la réactivité souhaitée
             playerObj.transform.position = Vector3.Lerp(playerObj.transform.position, targetPosition, Time.deltaTime * 15f);
 
-            // Mise à jour de l'état (animation, flip) via le PlayerController distant
+            // <<< AJOUT: Appliquer la VÉLOCITÉ directement >>>
+            // Ceci écrase l'effet de la gravité locale et force le Rigidbody à avoir la vitesse correcte
+            rb.linearVelocity = new Vector2(velocityX, velocityY);
+
+            // Mise à jour de l'état VISUEL (animation, flip) via le PlayerController distant
             var playerController = playerObj.GetComponent<PlayerController>();
             if (playerController)
             {
+                // UpdateRemoteState ne gère plus la vélocité, juste l'animation et le flip
                 playerController.UpdateRemoteState(isRunning, isIdle, flip);
             }
         }
         // else { Debug.LogWarning($"[PlayerManager] HandlePlayerUpdate: Joueur ID {id} non trouvé pour mise à jour."); } // Peut être verbeux
     }
+
 
     // Gère la suppression d'un joueur qui s'est déconnecté
     void HandlePlayerRemove(string id)
@@ -219,6 +239,7 @@ public class PlayerManager : MonoBehaviour
         {
             Destroy(playerObj); // Détruire le GameObject
             players.Remove(id); // Retirer du dictionnaire
+            playerRigidbodies.Remove(id); // <<< AJOUT: Retirer aussi du dictionnaire des Rigidbodies >>>
             Debug.Log($"[PlayerManager] Joueur {id} supprimé. Total restant: {players.Count}");
         }
         else

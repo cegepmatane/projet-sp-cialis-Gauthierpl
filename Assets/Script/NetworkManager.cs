@@ -19,7 +19,8 @@ public class NetworkManager : MonoBehaviour
     // Gardons simple pour l'instant, sans position initiale dans l'event
     public static event Action<string, string> OnPlayerSpawn;
     public static event Action<List<PlayerInfo>> OnExistingPlayers;
-    public static event Action<string, float, float, bool, bool, bool> OnPlayerUpdate;
+    // <<< MODIFICATION: Ajout de velocityX, velocityY >>>
+    public static event Action<string, float, float, bool, bool, bool, float, float> OnPlayerUpdate;
     public static event Action<string> OnPlayerRemove;
     public static event Action<string, string, string> OnChatMessage;
     public static event Action<string> OnMapLoadRequest;
@@ -270,14 +271,15 @@ public class NetworkManager : MonoBehaviour
             UnityMainThreadDispatcher.Instance()?.Enqueue(() => {
                 try
                 {
-                    // Désérialise directement dans la classe avec les float
+                    // Désérialise directement dans la classe avec les float et la vélocité
                     var data = response.GetValue<PlayerUpdateData>();
 
                     // Vérifie si les données sont valides et si ce n'est pas le joueur local
                     if (data != null && data.id != PlayerData.id)
                     {
-                        // Utilise directement data.x et data.y qui sont maintenant des float
-                        OnPlayerUpdate?.Invoke(data.id, data.x, data.y, data.isRunning, data.isIdle, data.flip);
+                        // <<< MODIFICATION: Ajout de data.velocityX, data.velocityY >>>
+                        // Utilise directement data.x, data.y, data.velocityX, data.velocityY
+                        OnPlayerUpdate?.Invoke(data.id, data.x, data.y, data.isRunning, data.isIdle, data.flip, data.velocityX, data.velocityY);
                     }
                     // Optionnel: Log si on ignore l'update pour soi-même
                     // else if (data != null && data.id == PlayerData.id) {
@@ -291,6 +293,7 @@ public class NetworkManager : MonoBehaviour
                 }
             });
         });
+
 
         // --- Handler 'removePlayer' ---
         client.On("removePlayer", response => {
@@ -490,12 +493,14 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public async void SendPlayerMove(float x, float y, bool isRunning, bool isIdle, bool flip)
+    // <<< MODIFICATION: Ajout de velocityX, velocityY >>>
+    public async void SendPlayerMove(float x, float y, bool isRunning, bool isIdle, bool flip, float velocityX, float velocityY)
     {
         if (client == null || !client.Connected) return;
         try
         {
-            await client.EmitAsync("playerMove", new { x, y, isRunning, isIdle, flip });
+            // <<< MODIFICATION: Ajout de velocityX, velocityY dans l'objet envoyé >>>
+            await client.EmitAsync("playerMove", new { x, y, isRunning, isIdle, flip, velocityX, velocityY });
         }
         catch (Exception e) { Debug.LogError($"[NetworkManager] ERREUR lors de EmitAsync 'playerMove': {e}"); }
     }
@@ -604,7 +609,8 @@ public class NetworkManager : MonoBehaviour
     [System.Serializable] public class PlayerInfo { public string id; public string pseudo; /* Potentiellement: public PointData spawnPoint; */ }
     [System.Serializable] public class PlayerIdData { public string id; }
     [System.Serializable] public class PlayerListResponse { public List<PlayerInfo> players; }
-    [System.Serializable] public class PlayerUpdateData { public string id; public float x; public float y; public bool isRunning; public bool isIdle; public bool flip; }
+    // <<< MODIFICATION: Ajout de velocityX, velocityY >>>
+    [System.Serializable] public class PlayerUpdateData { public string id; public float x; public float y; public bool isRunning; public bool isIdle; public bool flip; public float velocityX; public float velocityY; }
     [System.Serializable] public class ChatMessageData { public string id; public string pseudo; public string message; }
     [System.Serializable] public class ErrorData { public string message; }
     [System.Serializable] public class PointData { public float x; public float y; public float z; public Vector3 ToVector3() => new Vector3(x, y, z); }

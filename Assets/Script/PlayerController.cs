@@ -78,7 +78,7 @@ public class PlayerController : MonoBehaviour
             // Arrêter le mouvement si mort
             if (isDead && rb != null && rb.simulated)
             {
-                rb.linearVelocity = Vector2.zero;
+                rb.linearVelocity = Vector2.zero; // Utiliser linearVelocity
                 rb.angularVelocity = 0f;
             }
             return;
@@ -144,14 +144,19 @@ public class PlayerController : MonoBehaviour
         // Adapte isRunning et isIdle comme tu le souhaites
         bool isRunning = Mathf.Abs(rb.linearVelocity.x) > 0.1f; // Considéré comme courant si vitesse H non nulle
         bool isIdle = !isRunning && Mathf.Abs(rb.linearVelocity.y) < 0.1f; // Considéré idle si quasi immobile
+
+        // <<< MODIFICATION: Ajout de rb.linearVelocity.x et rb.linearVelocity.y >>>
         NetworkManager.Instance?.SendPlayerMove(
             transform.position.x,
             transform.position.y,
             isRunning,
             isIdle,
-            spriteRenderer != null ? spriteRenderer.flipX : false // état du flip
+            spriteRenderer != null ? spriteRenderer.flipX : false, // état du flip
+            rb.linearVelocity.x, // Envoi de la vélocité X
+            rb.linearVelocity.y  // Envoi de la vélocité Y
         );
     }
+
 
     // Met à jour l'animator et l'orientation du sprite localement
     void UpdateAnimationsAndFlip()
@@ -179,6 +184,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // --- Méthodes pour Joueurs Distants (Mise à jour simplifiée) ---
+    // Note: Cette méthode ne reçoit plus la vélocité, car elle est appliquée directement dans PlayerManager
     public void UpdateRemoteState(bool remoteIsRunning, bool remoteIsIdle, bool remoteFlip)
     {
         if (isLocalPlayer || isDead) return; // Ne pas appliquer si local ou mort
@@ -187,7 +193,11 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
         {
             animator.SetBool("IsRunning", remoteIsRunning);
-            // On ne met PAS à jour VerticalVelocity ici car on ne la connaît pas pour les joueurs distants
+            // On ne met PAS à jour VerticalVelocity ici car PlayerManager gère le Rigidbody directement.
+            // On pourrait éventuellement le faire si nécessaire pour des animations très précises,
+            // mais cela risquerait de créer des conflits visuels avec le mouvement réel.
+            // Pour l'instant, laisser VerticalVelocity être contrôlé par le Rigidbody distant est suffisant.
+            animator.SetFloat("VerticalVelocity", rb.linearVelocity.y); // Met à jour basé sur le RB *distant*
         }
 
         // Applique le flip reçu
@@ -232,7 +242,8 @@ public class PlayerController : MonoBehaviour
             // Suppression de IsGrounded
             animator.SetFloat("VerticalVelocity", 0f);
             // Peut-être forcer un retour à l'état Idle si tu as un trigger pour ça
-            // animator.ResetTrigger("Jump"); // Si tu utilises un trigger de saut
+            animator.Play("Idle", -1, 0f); // Force l'état Idle
+            animator.ResetTrigger("Jump"); // Si tu utilises un trigger de saut
         }
         moveInput = 0f;
         jumpRequest = false;
@@ -241,11 +252,37 @@ public class PlayerController : MonoBehaviour
     // --- Détection des Triggers (inchangée) ---
     void OnTriggerEnter2D(Collider2D other)
     {
-        // ... (code de collision inchangé) ...
+        // --- AJOUT: Vérifie si l'objet est local AVANT de gérer les triggers de gameplay ---
         if (!isLocalPlayer || isDead) return;
-        if (other.gameObject.CompareTag("MouseGoal")) { /* ... */ }
-        else if (other.gameObject.CompareTag("CatTree")) { /* ... */ }
+
+        if (other.gameObject.CompareTag("MouseGoal"))
+        {
+            Debug.Log("Trigger MouseGoal détecté");
+            if (!hasMouseGoal)
+            {
+                hasMouseGoal = true;
+                Debug.Log("Objectif souris obtenu !");
+                // Optionnel: Feedback visuel/sonore
+            }
+        }
+        else if (other.gameObject.CompareTag("CatTree"))
+        {
+            Debug.Log("Trigger CatTree détecté");
+            if (hasMouseGoal)
+            {
+                Debug.Log("VICTOIRE ! Objectif atteint !");
+                // Envoyer un événement de victoire au serveur ou gérer localement
+                hasMouseGoal = false; // Réinitialise pour le prochain tour/map
+                // Ici, on devrait probablement juste mourir pour respawn au prochain tour
+                Die();
+            }
+            else
+            {
+                Debug.Log("Arbre à chat atteint, mais il faut d'abord la souris !");
+            }
+        }
     }
+
 
     // --- Méthodes appelées par PlayerManager (inchangées) ---
     public void SetNetworkId(string networkId) { this.playerId = networkId; }

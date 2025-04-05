@@ -118,7 +118,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
 --- !u!58 &6038398607631942553
 CircleCollider2D:
@@ -170,13 +170,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerId: 
   pseudo: 
-  moveSpeed: 5
+  moveForce: 35
+  maxSpeed: 8
   jumpForce: 5
-  groundCheckRadius: 0.2
-  groundCheckPoint: {fileID: 0}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
   hasMouseGoal: 0
   isDead: 0
   deathYThreshold: -10
