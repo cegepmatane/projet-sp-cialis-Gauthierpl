@@ -3,10 +3,9 @@ const mysql = require('mysql2/promise');
 const store = require('./store');
 
 const dbConfig = {
-  host: 'localhost', // <-- METS LE VRAI HOSTNAME HOSTINGER
+  host: 'localhost',
   user: 'u299951540_JeuMulti',
-  password : 'METS_UN_MOT_DE_PASSE_LOCAL_ICI', //jai oublié de changer le mot de passe donc ce string est bien le vrai mot de passe de ma base en local mdr
-  //password: 'BB9J1eKI33xSxepLfCotoTgP8vSv4be2dqjyOiscLvqRpJQzxb', // ATTENTION: Stocker les mots de passe de manière plus sécurisée en production
+  password : 'METS_UN_MOT_DE_PASSE_LOCAL_ICI',
   database: 'u299951540_JeuMulti',
   waitForConnections: true,
   connectionLimit: 10,
@@ -53,7 +52,7 @@ async function loadMapsFromDB() {
   }
 }
 
-// Fonction pour trouver le spawn dans le JSON et mettre à jour le store
+// Fonction pour trouver le spawn dans le JSON et mettre à jour le store (inchangée)
 function updateCurrentMapData(mapJsonString) {
     store.currentMapJson = mapJsonString; // Stocke le JSON brut
     store.currentSpawnPoint = { x: 0, y: 0, z: 0 }; // Reset par défaut
@@ -62,7 +61,6 @@ function updateCurrentMapData(mapJsonString) {
         if (mapData && mapData.objects) {
             const spawnObject = mapData.objects.find(obj => obj.prefabId === 'cat_spawn');
             if (spawnObject && spawnObject.position) {
-                // Stocke les coordonnées du spawn trouvées
                 store.currentSpawnPoint = {
                     x: spawnObject.position.x,
                     y: spawnObject.position.y,
@@ -82,7 +80,7 @@ function updateCurrentMapData(mapJsonString) {
 function getNextMapJson() {
   if (!store.availableMaps || store.availableMaps.length === 0) {
     console.warn('[MapManager] Aucune carte disponible pour la rotation.');
-    store.currentMapJson = null; // Vide la carte actuelle
+    store.currentMapJson = null;
     store.currentSpawnPoint = { x: 0, y: 0, z: 0 };
     return null;
   }
@@ -95,7 +93,6 @@ function getNextMapJson() {
   const nextMap = store.availableMaps[store.currentMapIndex];
   console.log(`[MapManager] Prochaine carte sélectionnée: ID ${nextMap.id}`);
 
-  // Met à jour le store avec les infos de la nouvelle carte
   updateCurrentMapData(nextMap.mapCode);
 
   return nextMap.mapCode; // Renvoie la chaîne JSON
@@ -105,30 +102,49 @@ async function startMapRotation(io) {
   initializeDbPool();
   await loadMapsFromDB();
 
-  const initialMapJson = getNextMapJson(); // Trouve et met à jour le store
+  const initialMapJson = getNextMapJson();
   if (initialMapJson) {
       console.log('[MapManager] Diffusion de la carte initiale.');
-      io.in(store.GLOBAL_ROOM).emit('loadMap', initialMapJson);
+      // Pas besoin d'emit loadMap ici, car les clients la recevront via gameJoined
+      // Le serveur a juste besoin de connaître la carte et le spawn actuels.
+      // io.in(store.GLOBAL_ROOM).emit('loadMap', initialMapJson); // Retiré
   }
 
   // Timer de rotation de carte
-  setInterval(() => {
+  setInterval(async () => { // Rendre la fonction interne async pour potentiellement await plus tard
     console.log('[MapManager] Changement de carte déclenché par le timer.');
-    const nextMapJson = getNextMapJson(); // Trouve et met à jour le store
-    if (nextMapJson) {
-      // Avant de charger une nouvelle carte, on "tue" tout le monde pour forcer respawn
-      // Cela simplifie la gestion de ceux qui auraient fini juste avant
-       Object.keys(store.globalPlayers).forEach(playerId => {
-           store.deadPlayers.add(playerId);
-       });
-       console.log(`[MapManager] Tous les joueurs (${store.deadPlayers.size}) marqués comme morts avant chargement nouvelle carte.`);
+    const nextMapJson = getNextMapJson(); // Trouve la nouvelle carte et met à jour store.currentSpawnPoint
 
+    if (nextMapJson) {
+      // <<< MODIFICATION: Logique de changement de carte >>>
+
+      // 1. Retirer tous les joueurs actuels de chez tous les clients
+      const currentPlayersIds = Object.keys(store.globalPlayers);
+      if (currentPlayersIds.length > 0) {
+           console.log(`[MapManager] Broadcast removePlayer pour ${currentPlayersIds.length} joueur(s) avant changement de carte.`);
+           currentPlayersIds.forEach(playerId => {
+               io.in(store.GLOBAL_ROOM).emit('removePlayer', { id: playerId });
+           });
+      }
+
+       // Attente courte pour laisser le temps aux messages removePlayer d'arriver (optionnel, mais peut aider)
+       await new Promise(resolve => setTimeout(resolve, 100)); // Attendre 100ms
+
+      // 2. Informer les clients de charger la nouvelle carte
       io.in(store.GLOBAL_ROOM).emit('loadMap', nextMapJson);
       console.log('[MapManager] Nouvelle carte diffusée aux clients.');
+
+      // 3. Ajouter TOUS les joueurs actuels à la liste deadPlayers pour qu'ils soient respawnés par l'horloge
+      store.deadPlayers.clear(); // Vider l'ancienne liste au cas où
+      currentPlayersIds.forEach(playerId => {
+           store.deadPlayers.add(playerId);
+      });
+      console.log(`[MapManager] ${currentPlayersIds.length} joueur(s) ajouté(s) à deadPlayers pour respawn sur la nouvelle carte.`);
+
     } else {
         console.warn('[MapManager] Impossible de charger la prochaine carte, aucune carte disponible.');
     }
-  }, 30000); // 30 sec 
+  }, 30000); // 30 sec
 }
 
 module.exports = {
